@@ -1,7 +1,5 @@
-"""
-LABORATÓRIO 09: Arquitetura RAG Avançada (HNSW, HyDE e Cross-Encoders)
-Pipeline completo de RAG de nível de produção com manuais médicos simulados.
-"""
+"""LABORATÓRIO 09: Arquitetura RAG Avançada (HNSW, HyDE e Cross-Encoders)
+Pipeline completo de RAG de nível de produção com manuais médicos simulados."""
 
 import os
 import numpy as np
@@ -9,16 +7,12 @@ from openai import OpenAI
 import faiss
 from sentence_transformers import CrossEncoder
 
-# ==============================================================================
 # CONFIGURAÇÃO
-# ==============================================================================
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIM = 1536
 
-# ==============================================================================
 # BASE DE DADOS SIMULADA - 20 fragmentos de manuais médicos
-# ==============================================================================
 MEDICAL_CORPUS = [
     # Neurologia
     "Cefaléia pulsátil e fotofobia são sintomas clássicos de enxaqueca (migrânea). "
@@ -111,10 +105,7 @@ MEDICAL_CORPUS = [
     "Tratamento cirúrgico precoce (artroplastia ou osteossíntese) reduz mortalidade.",
 ]
 
-# ==============================================================================
 # PASSO 1: CONSTRUÇÃO E INDEXAÇÃO DO GRAFO HNSW
-# ==============================================================================
-
 def get_embeddings(texts: list[str]) -> np.ndarray:
     """Gera embeddings via OpenAI text-embedding-3-small."""
     print(f"[PASSO 1] Gerando embeddings para {len(texts)} documentos...")
@@ -149,10 +140,7 @@ def build_hnsw_index(vectors: np.ndarray) -> faiss.IndexHNSWFlat:
     return index
 
 
-# ==============================================================================
 # PASSO 2: QUERY TRANSFORMATION (HyDE - Hypothetical Document Embeddings)
-# ==============================================================================
-
 def hyde_transform(query: str) -> tuple[str, np.ndarray]:
     """
     HyDE: pede ao LLM que 'aluucine' um documento técnico ideal para a query,
@@ -192,10 +180,7 @@ def hyde_transform(query: str) -> tuple[str, np.ndarray]:
     return hypothetical_doc, hyde_vector
 
 
-# ==============================================================================
 # PASSO 3: BUSCA RÁPIDA VIA BI-ENCODER (HNSW)
-# ==============================================================================
-
 def retrieve_top_k(
     index: faiss.IndexHNSWFlat,
     corpus: list[str],
@@ -216,10 +201,7 @@ def retrieve_top_k(
     return results
 
 
-# ==============================================================================
 # PASSO 4: FILTRO FINO COM CROSS-ENCODER (Re-ranking)
-# ==============================================================================
-
 def rerank_with_cross_encoder(
     original_query: str,
     candidates: list[tuple[str, float]],
@@ -253,10 +235,8 @@ def rerank_with_cross_encoder(
     return ranked[:top_n]
 
 
-# ==============================================================================
-# PIPELINE COMPLETO
-# ==============================================================================
 
+# PIPELINE COMPLETO
 def run_rag_pipeline(query: str):
     """Executa o pipeline RAG completo: HNSW + HyDE + Cross-Encoder."""
     print("\n" + "="*70)
@@ -279,11 +259,7 @@ def run_rag_pipeline(query: str):
     print("Pipeline concluído. Os 3 documentos acima seriam injetados no contexto do LLM gerador.")
     return top3
 
-
-# ==============================================================================
 # PONTO DE ENTRADA
-# ==============================================================================
-
 if __name__ == "__main__":
     # Query coloquial de exemplo — o paciente não usa jargão médico
     USER_QUERY = "dor de cabeça latejante e luz incomodando muito, parece que vai explodir"

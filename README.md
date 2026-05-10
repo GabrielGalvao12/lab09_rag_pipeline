@@ -2,11 +2,9 @@
 
 > **Instituto iCEV | Disciplina: Engenharia de IA**
 
-Partes deste laboratório foram geradas/complementadas com IA, revisadas e validadas por [Seu Nome].
+Partes deste laboratório foram geradas/complementadas com IA, revisadas e validadas por Gabriel Galvão Cardoso.
 
----
-
-## 📋 Visão Geral
+## Visão Geral
 
 Pipeline de **Retrieval-Augmented Generation (RAG) de nível de produção** para busca em manuais médicos privados. O sistema transforma queries coloquiais de pacientes em buscas técnicas precisas usando três tecnologias em sequência:
 
@@ -14,9 +12,7 @@ Pipeline de **Retrieval-Augmented Generation (RAG) de nível de produção** par
 Query coloquial  →  HyDE  →  HNSW (Top-10)  →  Cross-Encoder (Top-3)  →  Contexto LLM
 ```
 
----
-
-## 🗂️ Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 lab09_rag/
@@ -26,41 +22,46 @@ lab09_rag/
 └── README.md                # Este arquivo
 ```
 
----
-
-## 🚀 Como Executar
+## Como Executar
 
 ### Opção A — Google Colab (recomendado para testes)
 
-1. Faça upload do arquivo `lab09_rag_pipeline.ipynb` no [Google Colab](https://colab.research.google.com)
-2. Execute a célula de instalação (`!pip install ...`)
+1. Faça upload do arquivo lab09_rag_pipeline.ipynb no Google Colab
+2. Execute a célula de instalação (!pip install ...)
 3. Insira sua chave de API da OpenAI na célula de configuração
-4. Execute todas as células em ordem (`Runtime → Run all`)
+4. Execute todas as células em ordem (Runtime → Run all)
 
 ### Opção B — Local / VS Code
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/SEU_USUARIO/lab09-rag-avancado.git
-cd lab09-rag-avancado
+git clone https://github.com/GabrielGalvao12/lab09_rag_pipeline.git
 
-# 2. Crie e ative o ambiente virtual
+# 2. Entre na pasta do projeto
+cd LABORATORIO_09
+
+# 3. Crie e ative o ambiente virtual
 python -m venv venv
-source venv/bin/activate        # Linux/macOS
-# venv\Scripts\activate         # Windows
 
-# 3. Instale as dependências
+# Linux/macOS
+source venv/bin/activate
+
+# Windows
+venv\Scripts\activate
+
+# 4. Instale as dependências
 pip install -r requirements.txt
 
-# 4. Configure a chave de API
-export OPENAI_API_KEY="sk-..."   # Linux/macOS
-# set OPENAI_API_KEY=sk-...      # Windows
+# 5. Configure a chave de API
+# Linux/macOS
+export OPENAI_API_KEY="sk-..."
 
-# 5. Execute o pipeline
+# Windows
+set OPENAI_API_KEY=sk-...
+
+# 6. Execute o pipeline
 python rag_pipeline.py
 ```
-
----
 
 ## 🔬 Tarefa Analítica — Passo 1
 
@@ -88,8 +89,6 @@ RAM_KNN = 10.000.000 × 1536 × 4 ≈ 61,4 GB
 
 Além do espaço de armazenamento, o KNN exato **precisa comparar a query com TODOS os N vetores** a cada busca (complexidade O(N·D)), o que torna inviável em escala.
 
----
-
 #### HNSW — Estrutura de Grafo Hierárquico
 
 O HNSW adiciona uma estrutura de **grafo multicamada** sobre os vetores. Cada nó (documento) armazena referências para seus M vizinhos mais próximos. O custo extra de memória por documento é:
@@ -113,8 +112,6 @@ RAM_HNSW_total ≈ 61,4 GB (vetores) + 58,7 GB (grafo) ≈ 120 GB
 | KNN Exato| O(N·D) — linear       | ~61 GB                  | 100%      |
 | HNSW     | O(log N) — logarítmico| ~120 GB (com M=32)      | ~97-99%   |
 
----
-
 #### Impacto do Hiperparâmetro `M`
 
 `M` controla o número de **arestas bidirecionais** que cada nó mantém no grafo:
@@ -126,8 +123,6 @@ RAM_HNSW_total ≈ 61,4 GB (vetores) + 58,7 GB (grafo) ≈ 120 GB
 ```
 RAM_grafo ∝ M × N    (crescimento linear com M)
 ```
-
----
 
 #### Impacto do Hiperparâmetro `ef_construction`
 
@@ -141,26 +136,24 @@ RAM_grafo ∝ M × N    (crescimento linear com M)
 RAM_temp_durante_construção ∝ ef_construction × D × 4 bytes
 ```
 
----
-
 #### Resumo Comparativo
 
-| Parâmetro         | Efeito na RAM (produção) | Efeito no Recall | Efeito na Velocidade de Busca |
-|-------------------|--------------------------|------------------|-------------------------------|
-| `M` ↑             | ↑ Aumenta linearmente    | ↑ Melhora        | ↓ Ligeiramente mais lento     |
-| `ef_construction` ↑| Neutro (só na construção)| ↑ Melhora        | Neutro                        |
-| `ef_search` ↑     | Neutro                   | ↑ Melhora        | ↓ Mais lento                  |
+| Parâmetro         | Efeito na RAM (produção)|Recall Effect|Efeito na Velocidade de Busca |
+|-------------------|-------------------------|-------------|------------------------------|
+| `M` ↑             |↑ Aumenta linearmente    | ↑ Melhora   | ↓ Ligeiramente mais lento    |
+| `ef_construction`↑|Neutro (só na construção)| ↑ Melhora   | Neutro                       |
+| `ef_search` ↑     |Neutro                   | ↑ Melhora   |↓ Mais lento                  |
 
 **Conclusão:** Para servidores com RAM limitada, o principal "vilão" é o parâmetro `M`. Recomenda-se M=32 como ponto de equilíbrio padrão para a maioria das aplicações de produção. O `ef_construction` deve ser maximizado durante a construção offline (quando há tempo disponível), pois não impacta o custo de RAM em produção.
 
 ---
 
-## 📐 Arquitetura do Pipeline
+## Arquitetura do Pipeline
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    QUERY DO USUÁRIO                      │
-│     "dor de cabeça latejante e luz incomodando"          │
+│                    QUERY DO USUÁRIO                     │
+│     "dor de cabeça latejante e luz incomodando"         │
 └──────────────────────────┬──────────────────────────────┘
                            │
                     ┌──────▼──────┐
@@ -184,20 +177,17 @@ RAM_temp_durante_construção ∝ ef_construction × D × 4 bytes
                     └─────────────┘
 ```
 
----
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
-| Biblioteca              | Papel no Pipeline                          |
-|-------------------------|--------------------------------------------|
+| Biblioteca              | Papel no Pipeline                                            |
+|-------------------------|--------------------------------------------------------------|
 | `openai`                | Embeddings (`text-embedding-3-small`) e HyDE (`gpt-4o-mini`) |
-| `faiss-cpu`             | Índice HNSW para busca vetorial aproximada |
-| `sentence-transformers` | Cross-Encoder para re-ranking preciso      |
-| `numpy`                 | Operações com vetores e normalização L2    |
+| `faiss-cpu`             | Índice HNSW para busca vetorial aproximada                   |
+| `sentence-transformers` | Cross-Encoder para re-ranking preciso                        |
+| `numpy`                 | Operações com vetores e normalização L2                      |
 
----
-
-## 📄 Dependências
+## Dependências
 
 Veja o arquivo `requirements.txt`:
 
@@ -208,6 +198,11 @@ sentence-transformers>=3.0.0
 numpy>=1.26.0
 ```
 
----
+### Política de Uso de IA
 
-*Partes deste laboratório foram geradas/complementadas com IA, revisadas e validadas por [Seu Nome].*
+Partes geradas/complementadas com IA, revisadas por Gabriel Galvão Cardoso.
+
+Ferramentas de IA generativa foram utilizadas como IA generativa Claude (Anthropic),suporte na geração de templates de código e estrutura inicial dos scripts. Todo o conteúdo foi
+revisado criticamente e validado antes da submissão, em conformidade com
+a Regra de Ouro do contrato pedagógico do iCEV.
+
