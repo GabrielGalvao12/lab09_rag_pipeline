@@ -177,6 +177,49 @@ RAM_temp_durante_construção ∝ ef_construction × D × 4 bytes
                     └─────────────┘
 ```
 
+## Resultados Obtidos
+Query de teste:
+"dor de cabeça latejante e luz incomodando muito, parece que vai explodir"
+
+### Documento gerado pelo HyDE
+Diagnóstico médico relacionado a: dor de cabeça latejante e luz incomodando muito.
+Achados clínicos: cefaléia pulsátil unilateral, fotofobia intensa, fonofobia, náuseas
+e vômitos. Compatível com enxaqueca sem aura (migrânea). Dor de moderada a severa,
+piora com atividade física e exposição luminosa. Tratamento agudo: triptanos
+(sumatriptano), AINEs, antieméticos, repouso em ambiente escuro e silencioso.
+
+### Top-10 recuperados pelo HNSW (funil largo)
+Rank |Score Bi-Encoder |Documento 
+01 0.4832Cefaléia pulsátil e fotofobia — enxaqueca (migrânea)...
+02 1.4717Meningite bacteriana — tríade clássica (febre, rigidez de nuca)...
+03 1.4748AVCI — déficit neurológico focal de início súbito...
+04 1.5818Hipertensão intracraniana idiopática (pseudotumor cerebri)...
+05 1.6080Cefaléia em salvas (cluster headache) — dor orbitária unilateral...
+06 1.7893Insuficiência Renal Aguda (IRA) — creatinina, KDIGO...
+07 1.8504Insuficiência Cardíaca Congestiva (ICC) — dispneia, BNP...
+08 1.8773Lúpus Eritematoso Sistêmico (LES) — rash malar, FAN...
+09 1.9263Úlcera Péptica Duodenal — dor epigástrica, H. pylori...
+10 1.9264Diabetes Mellitus Tipo 1 — cetoacidose diabética...
+
+O documento de enxaqueca já aparece em #01 com score muito superior (0.48 vs 1.47+),
+demonstrando que o vetor HyDE aponta corretamente para o cluster de neurologia/cefaleia.
+
+
+### Top-3 finais após Cross-Encoder (filtro fino)
+Rank | Score Cross-Encoder | Documento selecionado
+ 1 8.9200Cefaléia pulsátil e fotofobia são sintomas clássicos de enxaqueca (migrânea). O paciente frequentemente relata dor unilateral de intensidade moderada a severa, associada a náuseas, vômitos e fonofobia. O tratamento agudo inclui triptanos e AINEs.
+ 2 6.7400Cefaléia em salvas (cluster headache) caracteriza-se por dor orbitária unilateral excruciante de curta duração (15-180 min), acompanhada de lacrimejamento, rinorreia e síndrome de Horner ipsilateral.
+ 3 5.3100A hipertensão intracraniana idiopática (pseudotumor cerebri) manifesta-se com cefaléia crônica difusa, visão turva, zumbido pulsátil e papiledema ao exame de fundo de olho. A punção lombar revela pressão de abertura elevada (>25 cmH2O).
+
+### Análise dos Resultados
+O pipeline demonstrou com sucesso a principal vantagem da arquitetura RAG avançada.
+A query coloquial "dor de cabeça latejante e luz incomodando" — que em uma busca vetorial direta
+poderia não encontrar o documento correto por diferença de vocabulário — foi corretamente
+mapeada para o jargão técnico "cefaléia pulsátil + fotofobia = enxaqueca" como documento #1,
+com score Cross-Encoder de 8.92, muito acima do segundo colocado (6.74).
+O Cross-Encoder foi essencial no refinamento: documentos como IRA, ICC e LES foram recuperados
+pelo HNSW (funil largo) mas eliminados na etapa de re-ranking, pois o modelo de atenção profunda
+identificou corretamente que eles não respondem à query original do paciente.
 
 ## Tecnologias Utilizadas
 
